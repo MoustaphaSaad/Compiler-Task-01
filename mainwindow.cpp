@@ -2,7 +2,9 @@
 #include "ui_mainwindow.h"
 #include <sstream>
 #include "onlineprocessor.hpp"
+#include "RecursiveDescent.hpp"
 #include <QDebug>
+#include <exception>
 
 std::vector<CTools::Position> MainWindow::error_positions = std::vector<CTools::Position>();
 std::vector<std::string> MainWindow::error_msgs = std::vector<std::string>();
@@ -14,6 +16,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
     CTools::Services::init();
     m_walker = nullptr;
+    m_parser = nullptr;
 }
 
 MainWindow::~MainWindow()
@@ -43,6 +46,7 @@ void MainWindow::CreateMachine(){
     OnlineProcessor* processor = new OnlineProcessor();
     m_walker = new CTools::MachineWalker(scanner,processor);
     m_walker->errorFunction = error;
+    m_parser = new CTools::RecursiveDescent();
 }
 
 void MainWindow::walk()
@@ -54,6 +58,16 @@ void MainWindow::walk()
     populateLists();
 }
 
+QTreeWidgetItem* MainWindow::traverseTree(CTools::PNode* node){
+    QTreeWidgetItem* item = new QTreeWidgetItem();
+    item->setText(0,QString::fromStdString(node->Tag));
+    item->setText(1,QString::fromStdString(node->Value));
+    for(int i=0;i<node->size();i++){
+        item->addChild(traverseTree((*node)[i]));
+    }
+    return item;
+}
+
 void MainWindow::populateLists()
 {
     MainWindow::error_positions.clear();
@@ -61,6 +75,8 @@ void MainWindow::populateLists()
     m_symbolSet.clear();
     std::string content = ui->LangIn->toPlainText().toStdString();
     std::stringstream stream(content);
+
+    CTools::TokenStream tokens;
 
     if(!m_walker)
         return;
@@ -74,6 +90,7 @@ void MainWindow::populateLists()
     ui->TokenList->setRowCount(0);
     ui->CommentList->clear();
     ui->SymbolList->clear();
+    ui->treeWidget->clear();
     ui->ErrorList->clear();
 
 
@@ -86,6 +103,9 @@ void MainWindow::populateLists()
         CTools::Token t = walker->token(stream);
         if(!t.valid)
             break;
+
+        tokens.push_back(t);
+
         if(t.tag == "COMMENT"){
             ui->CommentList->insertItem(comments_rows++,QString::fromStdString(t.lexeme));
         }else{
@@ -108,9 +128,16 @@ void MainWindow::populateLists()
 
 
     }
+    int e=0;
+    for(e=0;e<MainWindow::error_positions.size();e++){
+        ui->ErrorList->insertItem(e,QString::fromStdString(MainWindow::error_msgs[e]));
+    }
 
-    for(int i=0;i<MainWindow::error_positions.size();i++){
-        ui->ErrorList->insertItem(i,QString::fromStdString(MainWindow::error_msgs[i]));
+    try{
+        CTools::PNode* program = m_parser->Parse(tokens);
+        ui->treeWidget->addTopLevelItem(traverseTree(program));
+    }catch(std::exception exp){
+        ui->ErrorList->insertItem(e,QString::fromStdString(exp.what()));
     }
 }
 

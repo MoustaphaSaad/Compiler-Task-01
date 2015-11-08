@@ -6,6 +6,7 @@
 #include <qlistwidget.h>
 #include <set>
 #include <QtPlugin>
+#include <QTreeWidget>
 namespace Ui {
 class MainWindow;
 }
@@ -34,7 +35,10 @@ private:
     ///populates list with data
     void populateLists();
 
+    QTreeWidgetItem* traverseTree(CTools::PNode* node);
+
     CTools::MachineWalker* m_walker;
+    CTools::IParser* m_parser;
     std::set<std::string> m_symbolSet;
     Ui::MainWindow *ui;
 };

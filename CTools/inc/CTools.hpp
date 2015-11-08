@@ -8,3 +8,6 @@
 #include "LexerFactory.hpp"
 #include "MachineWalker.hpp"
 #include "ScanMachine.hpp"
+#include "IParser.hpp"
+#include "RecursiveDescent.hpp"
+#include "PNode.hpp"
