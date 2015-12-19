@@ -11,3 +11,5 @@
 #include "IParser.hpp"
 #include "RecursiveDescent.hpp"
 #include "PNode.hpp"
+#include "ParseTable.hpp"
+#include "SLRParser.hpp"

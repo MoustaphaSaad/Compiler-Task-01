@@ -1,10 +1,13 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include <sstream>
+#include <iostream>
 #include "onlineprocessor.hpp"
 #include "RecursiveDescent.hpp"
 #include <QDebug>
 #include <exception>
+#include <QDir>
+using namespace std;
 
 std::vector<CTools::Position> MainWindow::error_positions = std::vector<CTools::Position>();
 std::vector<std::string> MainWindow::error_msgs = std::vector<std::string>();
@@ -46,7 +49,14 @@ void MainWindow::CreateMachine(){
     OnlineProcessor* processor = new OnlineProcessor();
     m_walker = new CTools::MachineWalker(scanner,processor);
     m_walker->errorFunction = error;
-    m_parser = new CTools::RecursiveDescent();
+    std::ifstream file;
+    std::cerr<<QDir::currentPath().toStdString()<<std::endl;
+    file.open("Table.txt");
+    std::cerr<<file.is_open()<<std::endl;
+    CTools::ParseTable table = CTools::ParseTable::load(file);
+    file.close();
+    cerr<<table.table.size()<<endl;
+    m_parser = new CTools::SLRParser(table);
 }
 
 void MainWindow::walk()
@@ -58,12 +68,17 @@ void MainWindow::walk()
     populateLists();
 }
 
-QTreeWidgetItem* MainWindow::traverseTree(CTools::PNode* node){
-    QTreeWidgetItem* item = new QTreeWidgetItem();
-    item->setText(0,QString::fromStdString(node->Tag));
-    item->setText(1,QString::fromStdString(node->Value));
+QTreeWidgetItem* MainWindow::traverseTree(CTools::PNode* node, QTreeWidgetItem* item){
+    if(node->Tag.size() > 0){
+        item = new QTreeWidgetItem();
+        item->setText(0,QString::fromStdString(node->Tag));
+        item->setText(1,QString::fromStdString(node->Value));
+    }
     for(int i=0;i<node->size();i++){
-        item->addChild(traverseTree((*node)[i]));
+        if((*node)[i]->Tag.size() <= 0)
+            traverseTree((*node)[i],item);
+        else
+            item->addChild(traverseTree((*node)[i],nullptr));
     }
     return item;
 }
@@ -135,7 +150,7 @@ void MainWindow::populateLists()
 
     try{
         CTools::PNode* program = m_parser->Parse(tokens);
-        ui->treeWidget->addTopLevelItem(traverseTree(program));
+        ui->treeWidget->addTopLevelItem(traverseTree(program,nullptr));
     }catch(std::exception exp){
         ui->ErrorList->insertItem(e,QString::fromStdString(exp.what()));
     }

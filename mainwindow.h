@@ -35,7 +35,7 @@ private:
     ///populates list with data
     void populateLists();
 
-    QTreeWidgetItem* traverseTree(CTools::PNode* node);
+    QTreeWidgetItem* traverseTree(CTools::PNode* node, QTreeWidgetItem* item);
 
     CTools::MachineWalker* m_walker;
     CTools::IParser* m_parser;
